@@ -77,32 +77,6 @@ public:
 			) * glm::angleAxis(glm::radians(this->pitch), glm::vec3(1, 0, 0));
 		}
 
-		auto action = ReAction::GetAction("cum");
-
-		if (action.GetConditionState(ButtonAction::Conditional::Press)) {
-			spdlog::info("pressed");
-		}
-
-		if (action.GetConditionState(ButtonAction::Conditional::LongPress)) {
-			spdlog::info("long pressed");
-		}
-
-		if (action.GetConditionState(ButtonAction::Conditional::Release)) {
-			spdlog::info("released");
-		}
-
-		if (action.GetConditionState(ButtonAction::Conditional::Tap)) {
-			spdlog::info("tapped");
-		}
-
-		if (action.GetConditionState(ButtonAction::Conditional::DoubleTap)) {
-			spdlog::info("double tapped");
-		}
-
-		if (action.GetConditionState(ButtonAction::Conditional::Mash)) {
-			spdlog::info("mashed");
-		}
-
 		if (GetScene()->Input()->KeyDown(Key::Escape)) {
 			this->movementEnabled = !this->movementEnabled;
 

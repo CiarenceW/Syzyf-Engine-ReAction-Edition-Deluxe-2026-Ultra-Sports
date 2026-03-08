@@ -114,10 +114,6 @@ bool ButtonAction::GetConditionState(Conditional conditional) const{
 
 ButtonAction::ButtonAction(const std::string &name, const Bind &primary, const Bind &secondary, const std::string &set, bool enabled, Conditional forceConditionals):
 m_Primary(primary), m_Secondary(secondary), name(name), set(set), enabled(enabled), forceConditionals(forceConditionals) {
-	if (enabled)
-	{
-		spdlog::warn(this->name);
-	}
 }
 
 ButtonAction::ButtonAction():
@@ -149,7 +145,7 @@ void ReAction::KeyCallback(GLFWwindow* window, int key, int scancode, int action
 		
 		action->conditionalsState |= ButtonAction::Conditional::Continuous;
 
-		if (Time::Current() - ReAction::scene->Input()->KeyPressTime(bind->GetKey()) < bind->timeOut) {
+		if (ReAction::scene->Input()->KeyReleasedTime(bind->GetKey()) < bind->timeOut) {
 			action->conditionalsState |= ButtonAction::Conditional::Mash;
 		}
 
@@ -161,22 +157,25 @@ void ReAction::KeyCallback(GLFWwindow* window, int key, int scancode, int action
 
 		bind->SetLongPressed(false);
 
-		if (Time::Current() - ReAction::scene->Input()->KeyPressTime(bind->GetKey()) < bind->timeOut) {
+		if (ReAction::scene->Input()->KeyPressedTime(bind->GetKey()) < bind->timeOut) {
 			action->conditionalsState |= ButtonAction::Conditional::Tap;
 
 			auto tapped = _tappedButtons.find(bind);
 
-			if (tapped != _tappedButtons.end() && ((Time::Current() - tapped->second) < bind->timeOut && !bind->GetDoubleTapped())) {
-				action->conditionalsState |= ButtonAction::Conditional::DoubleTap;
-
-				_tappedButtons.erase(tapped);
-
-				bind->SetDoubleTapped(true);
+			if (tapped != _tappedButtons.end()) {
+				if (Time::Current() - tapped->second < bind->timeOut && !bind->GetDoubleTapped()) {
+					action->conditionalsState |= ButtonAction::Conditional::DoubleTap;
+					
+					bind->SetDoubleTapped(true);
+				}
+				else {
+					tapped->second = Time::Current();
+					
+					bind->SetDoubleTapped(false);
+				}
 			}
 			else {
-				tapped->second = Time::Current();
-
-				bind->SetDoubleTapped(false);
+				_tappedButtons.emplace(bind, Time::Current());
 			}
 		}
 
@@ -214,8 +213,6 @@ void ReAction::KeyCallback(GLFWwindow* window, int key, int scancode, int action
 		}
 
 		for (auto action : _enabledActions) {
-			spdlog::info("keypresstime (pressed): {}", ReAction::scene->Input()->KeyPressTime(action->m_Primary.GetKey()));
-			
 			if (action->m_Primary.GetKey() == (Key)key) {
 				checkPressedKey(action, &action->m_Primary);
 			}
@@ -256,8 +253,6 @@ void ReAction::KeyCallback(GLFWwindow* window, int key, int scancode, int action
 		}
 
 		for (auto action : _enabledActions) {
-			spdlog::info("keypresstime (released): {}", ReAction::scene->Input()->KeyPressTime(action->m_Primary.GetKey()));
-
 			if (action->m_Primary.GetKey() == (Key)key) {
 				checkReleasedKey(action, &action->m_Primary);
 			}
@@ -277,8 +272,6 @@ void ReAction::RegisterButtonAction(std::shared_ptr<ButtonAction> buttonAction) 
 	}
 
 	_allActions.emplace(buttonAction);
-
-	spdlog::warn(_allActions.size());
 
 	auto set = buttonAction->set;
 
@@ -307,16 +300,28 @@ void ReAction::UpdateActionEnabled(std::shared_ptr<ButtonAction> buttonAction) {
 
 void ReAction::RefreshActionLists() {
 	auto checkLongPress = [this](std::shared_ptr<ButtonAction> action, ButtonAction::Bind* bind) {
-		if ((Time::Current() - this->GetScene()->Input()->KeyPressTime(bind->GetKey())) >= bind->timeOut && !bind->GetLongPressed()) {
+		if (bind->timeOut == 0) {
+			return;
+		}
+
+		if (this->GetScene()->Input()->KeyPressedTime(bind->GetKey()) >= bind->timeOut && !bind->GetLongPressed()) {
 			action->conditionalsState |= ButtonAction::Conditional::LongPress;
 
 			bind->SetLongPressed(true);
 		}
 	};
 
-	for (auto action : _enabledActions) {
-		spdlog::info("keypresstime (held meow): {}", ReAction::scene->Input()->KeyPressTime(action->m_Primary.GetKey()));
+	auto checkMashed = [this](std::shared_ptr<ButtonAction> action, ButtonAction::Bind* bind) {
+		if (bind->timeOut == 0) {
+			return;
+		}
 
+		if (Time::Current() - this->GetScene()->Input()->KeyChangedState(bind->GetKey()) >= bind->timeOut) {
+			action->conditionalsState &= ~ButtonAction::Conditional::Mash;
+		}
+	};
+
+	for (auto action : _enabledActions) {
 		action->conditionalsState &= ~ButtonAction::Conditional::Press;
 
 		action->conditionalsState &= ~ButtonAction::Conditional::Release;
@@ -327,7 +332,8 @@ void ReAction::RefreshActionLists() {
 
 		action->conditionalsState &= ~ButtonAction::Conditional::DoubleTap;
 
-		action->conditionalsState &= ~ButtonAction::Conditional::Mash;
+		checkMashed(action, &action->m_Primary);
+		checkMashed(action, &action->m_Secondary);
 
 		checkLongPress(action, &action->m_Primary);
 		checkLongPress(action, &action->m_Secondary);
@@ -384,8 +390,6 @@ void ReAction::DrawImGui() {
 SceneComponent(scene) {
 	this->scene = scene;
 	_sets = { "general" };
-
-	CreateAction("cum", ButtonAction::Bind(Key::Z, ButtonAction::Modifier::None, ButtonAction::Conditional::Press), ButtonAction::Bind(), "general", true);
 }
 
 std::vector<ButtonAction> ReAction::GetAllActions() {
