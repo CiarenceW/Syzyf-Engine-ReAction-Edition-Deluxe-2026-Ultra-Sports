@@ -112,12 +112,12 @@ bool ButtonAction::GetConditionState(Conditional conditional) const{
 	return (conditionalsState & conditional) != Conditional::None;
 }
 
-ButtonAction::ButtonAction(const std::string &name, const Bind &primary, const Bind &secondary, const std::string &set, bool enabled, Conditional forceConditionals):
-m_Primary(primary), m_Secondary(secondary), name(name), set(set), enabled(enabled), forceConditionals(forceConditionals) {
+ButtonAction::ButtonAction(const std::string &name, const Bind &primary, const Bind &secondary, const std::string &set, bool enabled, Conditional allowedConditionals):
+m_Primary(primary), m_Secondary(secondary), name(name), set(set), enabled(enabled), allowedConditionals(allowedConditionals) {
 }
 
 ButtonAction::ButtonAction():
-m_Primary(), m_Secondary(), name(), set(), enabled(), forceConditionals() {
+m_Primary(), m_Secondary(), name(), set(), enabled(), allowedConditionals() {
 }
 
 ButtonAction::~ButtonAction() {
@@ -131,7 +131,7 @@ std::vector<Key> ReAction::_pressedButtons;
 std::vector<Key> ReAction::_releasedButtons;
 std::unordered_set<std::shared_ptr<ButtonAction>> ReAction::_allActions;
 std::unordered_set<std::shared_ptr<ButtonAction>> ReAction::_enabledActions;
-std::unordered_set<std::string> ReAction::_sets;
+std::unordered_set<std::string> ReAction::_sets = { "general" };
 std::unordered_map<ButtonAction::Bind*, float> ReAction::_tappedButtons;
 std::unordered_set<std::string> ReAction::_activeSets = { "general" };
 
@@ -300,6 +300,7 @@ void ReAction::UpdateActionEnabled(std::shared_ptr<ButtonAction> buttonAction) {
 
 void ReAction::RefreshActionLists() {
 	auto checkLongPress = [this](std::shared_ptr<ButtonAction> action, ButtonAction::Bind* bind) {
+		//we wanna skip binds that aren't actually set
 		if (bind->timeOut == 0) {
 			return;
 		}
@@ -340,8 +341,11 @@ void ReAction::RefreshActionLists() {
 	}
 }
 
-void ReAction::CreateAction(const std::string& name, const ButtonAction::Bind& primary, const ButtonAction::Bind& secondary, const std::string& set, bool enabled, ButtonAction::Conditional forceConditionals) {
-	RegisterButtonAction(std::shared_ptr<ButtonAction>(new ButtonAction(name, primary, secondary, set, enabled, forceConditionals)));
+ButtonAction ReAction::CreateAction(const std::string& name, const ButtonAction::Bind& primary, const ButtonAction::Bind& secondary, const std::string& set, bool enabled, ButtonAction::Conditional allowedConditionals) {
+	auto action = new ButtonAction(name, primary, secondary, set, enabled, allowedConditionals);
+	RegisterButtonAction(std::shared_ptr<ButtonAction>(action));
+
+	return *action;
 }
 
 void ReAction::OnPostUpdate() {
@@ -389,7 +393,6 @@ void ReAction::DrawImGui() {
 	ReAction::ReAction(Scene* scene):
 SceneComponent(scene) {
 	this->scene = scene;
-	_sets = { "general" };
 }
 
 std::vector<ButtonAction> ReAction::GetAllActions() {

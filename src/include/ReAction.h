@@ -32,13 +32,21 @@ public:
 	enum class Conditional : unsigned char
 	{
 		None       = 0,
+		/// @brief Was the action pressed during this frame?
 		Press      = 1 << 0,
+		/// @brief Was the action pressed and held?
 		LongPress  = 1 << 1,
+		/// @brief Was the action released during this frame?
 		Release    = 1 << 2,
+		/// @brief Is the action being held?
 		Continuous = 1 << 3,
+		/// @brief Was the action pressed and quickly released?
 		Tap        = 1 << 4,
+		/// @brief Was the action tapped twice in quick succession?
 		DoubleTap  = 1 << 5,
+		/// @brief Is the action being continuously tapped?
 		Mash       = 1 << 6,
+		/// @brief Is the action toggled?
 		Toggle     = 1 << 7
 	};
 
@@ -60,9 +68,11 @@ public:
 		Conditional GetConditional() const;
 		void SetConditional(Conditional conditional);
 		
+		/// @brief Depending on the Conditional, determines if it's active before, or after the set time
 		float timeOut;
 
 	private:
+		/// @brief thanks to this, Bind is only 64bits big!!
 		unsigned int _internalBitmask;
 
 		bool GetDoubleTapped() const;
@@ -77,7 +87,7 @@ public:
 
 	std::string name;
 
-	Conditional forceConditionals = Conditional::None;
+	Conditional allowedConditionals = Conditional::None;
 
 	const Bind* GetPrimary() const;
 	const Bind* GetSecondary() const;
@@ -96,8 +106,6 @@ public:
 		return GetActive();
 	}
 	
-	ButtonAction(const std::string& name, const Bind& primary, const Bind& secondary, const std::string& set = "general", bool enabled = true, Conditional forceConditionals = Conditional::None);
-
 	ButtonAction();
 	
 	~ButtonAction();
@@ -112,6 +120,8 @@ private:
 	bool enabled;
 
 	Conditional conditionalsState;
+
+	ButtonAction(const std::string& name, const Bind& primary, const Bind& secondary, const std::string& set = "general", bool enabled = true, Conditional forceConditionals = Conditional::None);
 };
 
 class ReAction : public SceneComponent, public ImGuiDrawable {
@@ -148,14 +158,37 @@ protected:
 public:
 	ReAction(Scene* scene);
 
+	/// @brief Gets a list of all actions
+	/// @return A copy of the list of all actions
 	static std::vector<ButtonAction> GetAllActions();
+
+	/// @brief Gets a list of all enabled actions
+	/// @return A copy of the list of all enabled actions
 	static std::vector<ButtonAction> GetEnabledActions();
+
+	/// @brief Gets a list of all the active sets
+	/// @return A copy of the list of all active sets
 	static std::vector<std::string> GetActiveSets();
 
-	static void CreateAction(const std::string& name, const ButtonAction::Bind& primary, const ButtonAction::Bind& secondary, const std::string& set = "general", bool enabled = true, ButtonAction::Conditional forceConditionals = ButtonAction::Conditional::None);
+	/// @brief Creates a new action, and returns it
+	/// @param name The name of the action
+	/// @param primary The primary bind
+	/// @param secondary The secondary bind
+	/// @param set The name of the set the action should belong to
+	/// @param enabled Whether or not the action should be enabled
+	/// @param allowedConditionals Use this for UI and stuff, if you wanted the user to only be able to choose between Press or Long Pressed, you'd make this Press | LongPress and check ButtonAction.allowedConditionals in your UI code
+	/// @return The newly created action
+	static ButtonAction CreateAction(const std::string& name, const ButtonAction::Bind& primary, const ButtonAction::Bind& secondary, const std::string& set = "general", bool enabled = true, ButtonAction::Conditional forceConditionals = ButtonAction::Conditional::None);
 
+	/// @brief Gets an action by name
+	/// @param actionName The name of the action
+	/// @param throwOnMissing Whether or not to throw an error if the action is not found
+	/// @return The action that you wanted to get, or nothing if the action wasn't found
 	static ButtonAction GetAction(const std::string& actionName, bool throwOnMissing = false);
 
+	/// @brief Makes a set active, or not
+	/// @param setName The name of the set
+	/// @param active Whether or not the set should be
 	static void SetActionSetActive(const std::string& setName, bool active);
 };
 
