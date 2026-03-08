@@ -19,6 +19,7 @@
 #include <InputSystem.h>
 #include <Engine.h>
 #include <Viewport.h>
+#include <ReAction.h>
 
 class Mover : public GameObject, public ImGuiDrawable {
 private:
@@ -74,6 +75,32 @@ public:
 			this->GlobalTransform().Rotation() = glm::angleAxis(
 				glm::radians(this->rotation), glm::vec3(0, 1, 0)
 			) * glm::angleAxis(glm::radians(this->pitch), glm::vec3(1, 0, 0));
+		}
+
+		auto action = ReAction::GetAction("cum");
+
+		if (action.GetConditionState(ButtonAction::Conditional::Press)) {
+			spdlog::info("pressed");
+		}
+
+		if (action.GetConditionState(ButtonAction::Conditional::LongPress)) {
+			spdlog::info("long pressed");
+		}
+
+		if (action.GetConditionState(ButtonAction::Conditional::Release)) {
+			spdlog::info("released");
+		}
+
+		if (action.GetConditionState(ButtonAction::Conditional::Tap)) {
+			spdlog::info("tapped");
+		}
+
+		if (action.GetConditionState(ButtonAction::Conditional::DoubleTap)) {
+			spdlog::info("double tapped");
+		}
+
+		if (action.GetConditionState(ButtonAction::Conditional::Mash)) {
+			spdlog::info("mashed");
 		}
 
 		if (GetScene()->Input()->KeyDown(Key::Escape)) {
@@ -347,6 +374,8 @@ void InitScene(Scene* mainScene) {
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
 
 	mainScene->AddComponent<DebugInspector>();
+
+	mainScene->AddComponent<ReAction>();
 }
 
 int main(int, char**) {

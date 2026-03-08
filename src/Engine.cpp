@@ -23,6 +23,7 @@ extern "C" {
 #include <Scene.h>
 #include <TimeSystem.h>
 #include <Graphics.h>
+#include <ReAction.h>
 
 const char*   glsl_version     = "#version 460";
 constexpr int32_t GL_VERSION_MAJOR = 4;
@@ -108,6 +109,9 @@ bool Engine::InitProgram() {
 
 	glfwMakeContextCurrent(window);
 	glfwSwapInterval(1);
+ 
+	//fuck you, deal with it
+	glfwSetKeyCallback(window, ReAction::KeyCallback);
 
 	bool err = !gladLoadGLLoader((GLADloadproc) glfwGetProcAddress);
 	
